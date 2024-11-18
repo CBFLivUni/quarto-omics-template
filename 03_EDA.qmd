@@ -1,0 +1,161 @@
+---
+title: "Exploratory Data Analysis"
+author:
+  - Jamie Soul
+date: today
+date-format: short
+format:
+  html:
+    self-contained: true
+    theme: litera
+    toc: true
+editor: visual
+code-block-bg: true
+code-block-border-left: "#31BAE9"
+---
+
+## Load libraries
+
+```{r}
+#| output: false
+library(tidyverse)
+library(cowplot)
+llibrary(RColorBrewer)
+library(scales)
+library(ComplexHeatmap)
+library(circlize)
+library(qreport)
+library(variancePartition)
+```
+
+## Load the data
+
+```{r}
+
+# Load the data saved from the preprocessing step
+processedData <- readRDS("data/processedData.RDS")
+
+# Get the data and metadata
+dat <- processedData$dat
+metadata <- processedData$metadata
+
+```
+
+## PCA
+
+Perform PCA to look at the structure of the data
+
+```{r}
+# Perform PCA
+pca <- prcomp(t(dat),center = TRUE,scale. = TRUE)
+
+# Calculate variance explained
+pca_var <- pca$sdev^2
+pca_var_explained <- pca_var / sum(pca_var)
+
+# Create a data frame with PCA results
+pca_df <- as.data.frame(pca$x)
+
+```
+
+## Plot PCA with the covariates
+
+```{r}
+
+pca_df <- cbind(pca_df, metadata)
+
+makePCAPlots <- function(variable, pca_df){
+  
+    ggplot(pca_df, aes(x = PC1, y = PC2, color = !!sym(variable))) +
+  geom_point(size = 3) +
+  xlab(paste0("PC1 (", round(pca_var_explained[1] * 100, 1), "% variance)")) +
+  ylab(paste0("PC2 (", round(pca_var_explained[2] * 100, 1), "% variance)")) +
+  theme_cowplot()
+  
+}
+
+variables <- colnames(metadata)
+
+pcaPlots <- lapply(variables, makePCAPlots, pca_df)
+
+```
+
+### Plots of PCA colored by the variables
+
+```{r}
+#| echo: false
+#| output: asis
+# Dynamically create tabs
+names(pcaPlots) <- variables
+maketabs(pcaPlots, cap = 1:length(pcaPlots), basecap=c("PCA of data"))
+```
+
+```{r}
+#| fig-height: 10
+#| fig-width: 8
+
+pc_names <- paste0("PC", 1:20)
+results_df <- data.frame(matrix(ncol = length(variables), nrow = length(pc_names)))
+colnames(results_df) <- variables
+rownames(results_df) <- pc_names
+
+# Loop over each PC and covariate
+for (pc in pc_names) {
+  for (covariate in variables) {
+    # Fit the linear model for the given PC and covariate
+    lm_model <- lm(as.formula(paste(pc, "~", covariate)), data = pca_df)
+    
+    # Extract the p-value
+    results_df[pc, covariate] <- summary(lm_model)$coefficients[2, 4]
+  }
+}
+
+results_log_df <- -log10(results_df)
+
+
+results_log_df <- results_log_df %>% rownames_to_column("PC")
+
+# Reshape data
+results_long <- melt(results_log_df, varnames = c("PC", "variable"), value.name = "log_p_value")
+
+results_long$PC <- factor(results_long$PC,levels=pc_names)
+
+# Plot heatmap
+ggplot(results_long, aes(x = variable, y = PC, fill = log_p_value)) +
+    geom_tile(color = "white") +
+    scale_fill_gradient(low = "white", high = "blue") +
+    labs(title = "-log10(p-value) of Association between PCs and Covariates", 
+         x = "Covariate", 
+         y = "Principal Component") +
+    theme_cowplot() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Let's look at PC... since it seems to be explained by ....
+
+```{r}
+
+  ggplot(pca_df, aes(x = PC1, y = PC3, color = X)) +
+  geom_point(size = 3) +
+  xlab(paste0("PC1 (", round(pca_var_explained[1] * 100, 1), "% variance)")) +
+  ylab(paste0("PC3 (", round(pca_var_explained[3] * 100, 1), "% variance)")) +
+  theme_cowplot()
+ 
+```
+
+## Variance partition
+
+What factors explain the variation in the data
+
+```{r}
+#| fig-height: 10
+#| fig-width: 8
+#| 
+model <- ~ (1|experimental_group) + (1|sex)
+
+
+varPart <- fitExtractVarPartModel(dat, model, metadata)
+
+vp <- sortCols(varPart)
+plotVarPart(vp)
+```

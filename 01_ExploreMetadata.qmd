@@ -1,0 +1,66 @@
+---
+title: "Exploratory Data Analysis"
+author:
+  - Jamie Soul
+date: today
+date-format: short
+format:
+  html:
+    self-contained: true
+    theme: litera
+    toc: true
+editor: visual
+code-block-bg: true
+code-block-border-left: "#31BAE9"
+---
+
+## Metadata exploration
+
+### Load the libraries
+
+```{r}
+#| output: false
+library(tidyverse)
+library(skimr)
+library(janitor)
+library(readxl)
+library(GGally)
+library(cowplot)
+```
+
+### Load and tidy the metadata
+
+```{r}
+# Read in the data
+metadata <- read_xlsx("data/")
+
+# Tidy the metadata
+metadata <- clean_names(metadata)
+
+# Wrangle the metadata as appropriate here
+
+```
+
+### Explore the metadata
+
+```{r}
+
+# TODO make metadatacheckeR package - flag possible common data errors automatically
+# Summarise the variables
+skim(metadata)
+```
+
+#### Pairwise variable comparison
+
+Examine all pairs of variables to spot patterns.
+
+```{r}
+#| fig-width: 11
+#| fig-height: 9
+#| fig-cap: "Pairwise exploration of metadata variables"
+
+ggpairs(metadata) +
+  cowplot::theme_cowplot()
+
+
+```

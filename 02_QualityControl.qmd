@@ -1,0 +1,59 @@
+---
+title: "Quality Control"
+author:
+  - Jamie Soul
+date: today
+date-format: short
+format:
+  html:
+    self-contained: true
+    theme: litera
+    toc: true
+editor: visual
+code-block-bg: true
+code-block-border-left: "#31BAE9"
+---
+
+## Load libraries
+
+```{r}
+#| output: false
+library(tidyverse)
+library(cowplot)
+library(testthat)
+```
+
+## Load the metadata
+
+```{r}
+# Load the metadata that is pre-tidied
+metadata <- readRDS("processed/")
+```
+
+## Load the data
+
+```{r}
+#Load the data
+dat <- readRDS("raw/")
+```
+
+Check the metadata and data using assertions
+```{r}
+expect_condition(ncol(dat)==nrow(metadata))
+
+```
+
+In total there are `r length(files)` files with metadata
+
+### QC
+```{r}
+
+```
+
+
+### Save the data
+```{r}
+# Save the processed data for the next step.
+saveRDS(list(metadata=metadata,data=dat),file="processed/processedData.RDS")
+
+```

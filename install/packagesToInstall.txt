@@ -1,0 +1,16 @@
+tidyverse
+renv
+cowplot
+GGally
+janitor
+readxl
+skimr
+rmarkdown
+testthat
+circlize
+ComplexHeatmap
+qreport
+scales
+variancePartition
+BiocManager
+quarto
